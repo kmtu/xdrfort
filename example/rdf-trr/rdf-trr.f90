@@ -1,9 +1,9 @@
 ! This program calculates the ow-ow rdf
 ! for pure water in NVT ensemble with periodic cubic boundaries
 program rdf
-    use xtc, only: xtcfile
+    use xdr, only: trrfile
     implicit none
-    type(xtcfile) :: xtcf
+    type(trrfile) :: trr
     real(kind=8), parameter :: pi = 3.141592653589793238462643383
     real(kind=8), parameter :: dr = 0.002 !nm
     real(kind=8), allocatable :: pos(:,:), g(:), r(:)
@@ -11,15 +11,15 @@ program rdf
     real(kind=8) :: r_max, box_dim, dv, rho
     integer :: nhist, ng, ig, npos, i, j
 
-    call xtcf % init("w100-nvt.xtc")
+    call trr % init("w100-nvt.trr")
 
-    npos = xtcf % NATOMS / 3  !number of water molecules (NATOMS is obtained after calling init)
+    npos = trr % NATOMS / 3  !number of water molecules (NATOMS is obtained after calling init)
     allocate(pos(3, npos))
 
-    call xtcf % read
+    call trr % read
     
     ! box information cannot be obtained until at least one read call
-    box_dim = xtcf % box(1,1)
+    box_dim = trr % box(1,1)
     r_max = box_dim / 2d0
     nhist = ceiling(r_max / dr)
     allocate(g(nhist))
@@ -28,9 +28,9 @@ program rdf
     ng = 0
     r = [((i - 0.5) * dr, i = 1, nhist)]  !set r-scales as the middle points (Fortran comprehension list)
 
-    do while ( xtcf % STAT == 0 )
+    do while ( trr % STAT == 0 )
         ng = ng + 1
-        pos = xtcf % pos(:, 1:xtcf % NATOMS:3)  !get the position of OW (every 3rd atom)
+        pos = trr % pos(:, 1:trr % NATOMS:3)  !get the position of OW (every 3rd atom)
         do i = 1, npos
           do j = 1, npos
             if (i /= j) then
@@ -47,11 +47,11 @@ program rdf
             end if
           end do
         end do
-        call xtcf % read
+        call trr % read
     end do
 
     ! 5. Close the file
-    call xtcf % close
+    call trr % close
 
     ! normalize rdf
     rho = dble(npos) / box_dim**3  !number density

@@ -1,13 +1,13 @@
 Compiling
 
-    ifort -c ../../xtc.f90 rdf.f90 -traceback
-    ifort -o out rdf.o xtc.o -lxdrfile
+    ifort -c ../../xdr.f90 rdf-xtc.f90 -traceback
+    ifort xdr.o rdf-xtc.o -lxdrfile
 
 (Note: the -tracback flag is not necessary but convenient for debugging)
 
 
 Run:
 
-    ./out > rdf.xvg
+    ./a.out > rdf.xvg
 
 to output the rdf data to rdf.xvg

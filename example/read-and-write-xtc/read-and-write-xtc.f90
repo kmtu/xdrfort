@@ -6,7 +6,7 @@
 program example
 
     ! 1. Use the xdr interface
-    use xtc, only: xtcfile
+    use xdr, only: xtcfile
 
     implicit none
 

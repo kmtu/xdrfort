@@ -1,0 +1,13 @@
+Compiling
+
+    ifort -c ../../xdr.f90 rdf-trr.f90 -traceback
+    ifort xdr.o rdf-trr.o -lxdrfile
+
+(Note: the -tracback flag is not necessary but convenient for debugging)
+
+
+Run:
+
+    ./a.out > rdf.xvg
+
+to output the rdf data to rdf.xvg
