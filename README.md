@@ -1,4 +1,4 @@
-XDR Fortran Interface with Wrappers
+XDR Interface for Fortran
 ==========
 
 This Fortran interface for reading xdr files (both xtc and trr formats)
