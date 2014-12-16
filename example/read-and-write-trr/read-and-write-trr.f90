@@ -12,9 +12,11 @@ program example
 
     ! 2. Declare a variable of type trrfile
     type(trrfile) :: trr
+    type(trrfile) :: trr_out
 
-    ! 3. Initialize it with the name of xtc file you want to read in.
+    ! 3. Initialize it with the names of trr files you want to read in and write out
     call trr % init("example.trr")
+    call trr_out % init("example_out.trr", 'w')
 
     ! 4. Read in each configuration. Everything is stored in the trrfile type (lambda, time,
     !    step, no of atoms, positions, etc.). Look in the xtc module for more details.
@@ -24,7 +26,6 @@ program example
     call trr % read
 
     do while ( trr % STAT == 0 )
-
         ! Just an example to show what was read in
         write(*,'(a,f12.6,a,i0)') " Time (ps): ", trr % time, "  Step: ", trr % STEP
         write(*,'(a,f12.6,a,i0)') " Lambda: ", trr % lambda, "  No. Atoms: ", trr % NATOMS
@@ -48,11 +49,16 @@ program example
         write(*,'(3f9.3)') trr % force
         write(*,*)
 
-        call trr % read
+        call trr_out % write(trr % natoms, trr % step, trr % time, trr % lambda, trr % box, trr % pos, trr % vel, trr % force)
+        if (trr_out % stat /= 0) then
+          write(0,*) "Error: something was wrong when writing data"
+        end if
 
+        call trr % read
     end do
 
     ! 5. Close the file
     call trr % close
+    call trr_out % close
 
 end program example

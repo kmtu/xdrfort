@@ -12,9 +12,11 @@ program example
 
     ! 2. Declare a variable of type xtcfile
     type(xtcfile) :: xtcf
+    type(xtcfile) :: xtc_out
 
-    ! 3. Initialize it with the name of xtc file you want to read in.
+    ! 3. Initialize it with the names of xtc files you want to read in and write out
     call xtcf % init("example.xtc")
+    call xtc_out % init("example_out.xtc", 'w')
 
     ! 4. Read in each configuration. Everything is stored in the xtcfile type (precision, time,
     !    step, no of atoms, positions, etc.). Look in the xtc module for more details.
@@ -35,11 +37,13 @@ program example
                             xtcf % box(1,2), xtcf % box(1,3), & 
                             xtcf % box(2,1), xtcf % box(2,3), &
                             xtcf % box(3,1), xtcf % box(3,2) 
-        call xtcf % read
+        call xtc_out % write(xtcf % natoms, xtcf % step, xtcf % time, xtcf % box, xtcf % pos, xtcf % prec)
 
+        call xtcf % read
     end do
 
     ! 5. Close the file
     call xtcf % close
+    call xtc_out % close
 
 end program example

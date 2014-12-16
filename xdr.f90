@@ -17,6 +17,7 @@ module xdr
       type(xdrfile), pointer :: xd
       integer(C_INT) :: natoms, step, stat
       real(C_FLOAT) :: box(3,3), time
+      character(len=1) :: mode
     contains
       procedure :: init => init_xdr
       procedure :: read => read_xdr
@@ -39,6 +40,8 @@ module xdr
     type, extends(trjfile), public :: xtcfile
       real(C_FLOAT), allocatable :: pos(:,:)
       real(C_FLOAT) :: prec
+    contains
+      procedure :: write => write_xtcfile
     end type
 
 !   *** trrfile type
@@ -56,6 +59,8 @@ module xdr
     type, extends(trjfile), public :: trrfile
       real(C_FLOAT), allocatable :: pos(:,:), vel(:,:), force(:,:)
       real(C_FLOAT) :: lambda
+    contains
+      procedure :: write => write_trrfile
     end type
 
     ! the data type located in libxdrfile
@@ -80,13 +85,13 @@ module xdr
       end function
 
       ! xtc
-      integer(C_INT) function read_xtc_natoms(filename,natoms) bind(C, name='read_xtc_natoms')
+      integer(C_INT) function read_xtc_natoms(filename,natoms) bind(C)
         import
         character(kind=C_CHAR), intent(in) :: filename
         integer(C_INT), intent(out) :: natoms
       end function
 
-      integer(C_INT) function read_xtc(xd,natoms,step,time,box,x,prec) bind(C, name='read_xtc')
+      integer(C_INT) function read_xtc(xd,natoms,step,time,box,x,prec) bind(C)
         import
         type(xdrfile), intent(in) :: xd
         integer(C_INT), intent(in), value :: natoms
@@ -94,14 +99,22 @@ module xdr
         real(C_FLOAT), intent(out) :: time, prec, box(*), x(*)
       end function
 
+      integer(C_INT) function write_xtc(xd,natoms,step,time,box,x,prec) bind(C)
+        import
+        type(xdrfile), intent(in) :: xd
+        integer(C_INT), intent(in), value :: natoms, step
+        real(C_FLOAT), intent(in), value :: time, prec
+        real(C_FLOAT), intent(in) :: box(*), x(*)
+      end function
+
       ! trr
-      integer(C_INT) function read_trr_natoms(filename,natoms) bind(C, name='read_trr_natoms')
+      integer(C_INT) function read_trr_natoms(filename,natoms) bind(C)
         import
         character(kind=C_CHAR), intent(in) :: filename
         integer(C_INT), intent(out) :: natoms
       end function
 
-      integer(C_INT) function read_trr(xd,natoms,step,time,lambda,box,x,v,f) bind(C, name='read_trr')
+      integer(C_INT) function read_trr(xd,natoms,step,time,lambda,box,x,v,f) bind(C)
         import
         type(xdrfile), intent(in) :: xd
         integer(C_INT), intent(in), value :: natoms
@@ -109,12 +122,20 @@ module xdr
         real(C_FLOAT), intent(out) :: time, lambda, box(*), x(*), v(*), f(*)
       end function
 
+      integer(C_INT) function write_trr(xd,natoms,step,time,lambda,box,x,v,f) bind(C)
+        import
+        type(xdrfile), intent(in) :: xd
+        integer(C_INT), intent(in), value :: natoms, step
+        real(C_FLOAT), intent(in), value :: time, lambda
+        real(C_FLOAT), intent(in) :: box(*), x(*), v(*), f(*)
+      end function
+
     end interface
 
 contains
 
     ! our wrappers for the trjfile class
-    subroutine init_xdr(trj,filename_in)
+    subroutine init_xdr(trj,filename_in,mode_opt)
 
         use, intrinsic :: iso_c_binding, only: C_NULL_CHAR, C_CHAR, c_f_pointer
 
@@ -124,97 +145,131 @@ contains
         character (len=*), intent(in) :: filename_in
         character (len=206) :: filename
         logical :: ex
+        character(len=1), optional, intent(in) :: mode_opt
 
-        inquire(file=trim(filename_in),exist=ex)
-
-        if (ex .eqv. .false.) then
-            write(0,*)
-            write(0,'(a)') " Error: "//trim(filename_in)//" does not exist."
-            write(0,*)
-            stop
+        if (present(mode_opt)) then
+          trj % mode = mode_opt
+        else
+          trj % mode = 'r'
         end if
 
         ! Set the file name to be read in for C.
         filename = trim(filename_in)//C_NULL_CHAR
 
-        select type (trj)
+        select case (trj % mode)
+        case ('r')
+          inquire(file=trim(filename_in),exist=ex)
 
-        type is (xtcfile)
-          ! Get number of atoms in system and allocate position array.
-          trj % stat = read_xtc_natoms(filename,trj % natoms)
-
-          if (trj % stat /= 0) then
+          if (ex .eqv. .false.) then
               write(0,*)
-              write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an xtc file?"
+              write(0,'(a)') " Error: "//trim(filename_in)//" does not exist."
               write(0,*)
               stop
           end if
 
-          allocate(trj % pos(3,trj % natoms))
+          select type (trj)
+          type is (xtcfile)
+            ! Get number of atoms in system and allocate position array.
+            trj % stat = read_xtc_natoms(filename,trj % natoms)
 
-        type is (trrfile)
-          ! Get number of atoms in system and allocate position, velocity, force arrays.
-          trj % stat = read_trr_natoms(filename,trj % natoms)
+            if (trj % stat /= 0) then
+                write(0,*)
+                write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an xtc file?"
+                write(0,*)
+                stop
+            end if
 
-          if (trj % stat /= 0) then
-              write(0,*)
-              write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an trr file?"
-              write(0,*)
-              stop
-          end if
+            allocate(trj % pos(3,trj % natoms))
 
-          allocate(trj % pos(3,trj % natoms))
-          allocate(trj % vel(3,trj % natoms))
-          allocate(trj % force(3,trj % natoms))
+          type is (trrfile)
+            ! Get number of atoms in system and allocate position, velocity, force arrays.
+            trj % stat = read_trr_natoms(filename,trj % natoms)
+
+            if (trj % stat /= 0) then
+                write(0,*)
+                write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an trr file?"
+                write(0,*)
+                stop
+            end if
+
+            allocate(trj % pos(3,trj % natoms))
+            allocate(trj % vel(3,trj % natoms))
+            allocate(trj % force(3,trj % natoms))
+          end select
+
+          write(0,'(a)') " Open "//trim(filename)//" for reading."
+          write(0,'(a,i0,a)') " ",trj % natoms, " atoms present in system."
+          write(0,*)
+
+        case ('w')
+          write(0,'(a)') " Open "//trim(filename)//" for writing."
+          write(0,*)
+
+        case default
+          write(0,*)
+          write(0,*) "Unknown file mode: '"//trj % mode//"'. It can only be 'r' or 'w'."
+          write(0,*)
+          stop
         end select
 
-        ! Open the file for reading. Convert C pointer to Fortran pointer.
-        xd_c = xdrfile_open(filename,"r")
+        ! Open the file for reading or writing. Convert C pointer to Fortran pointer.
+        xd_c = xdrfile_open(filename, trj % mode)
         call c_f_pointer(xd_c,trj % xd)
-
-        write(0,'(a)') " Opened "//trim(filename)//" for reading."
-        write(0,'(a,i0,a)') " ",trj % natoms, " atoms present in system."
-        write(0,*)
-
     end subroutine init_xdr
 
     subroutine read_xdr(trj)
 
         implicit none
         class(trjfile), intent(inout) :: trj
-        real :: box_trans(3,3)
 
         select type (trj)
 
         type is (xtcfile)
-          trj % stat = read_xtc(trj % xd,trj % natoms,trj % step,trj % time,box_trans,trj % pos,trj % prec)
+          trj % stat = read_xtc(trj % xd,trj % natoms,trj % step,trj % time,trj % box,trj % pos,trj % prec)
 
         type is (trrfile)
-          trj % stat = read_trr(trj % xd,trj % natoms,trj % step,trj % time,trj % lambda, box_trans,trj % pos,trj % vel,trj % force)
+          trj % stat = read_trr(trj % xd,trj % natoms,trj % step,trj % time,trj % lambda, trj % box,trj % pos,trj % vel,trj % force)
 
         end select
 
     end subroutine read_xdr
+
+    subroutine write_xtcfile(xtc, natoms, step, time, box, pos, prec)
+        implicit none
+        class(xtcfile), intent(inout) :: xtc
+        integer, intent(in) :: natoms, step
+        real, intent(in) :: time, box(3,3), pos(:, :), prec
+
+        xtc % stat = write_xtc(xtc % xd, natoms, step, time, box, pos, prec)
+    end subroutine write_xtcfile
+
+    subroutine write_trrfile(trr, natoms, step, time, lambda, box, pos, vel, force)
+        implicit none
+        class(trrfile), intent(inout) :: trr
+        integer, intent(in) :: natoms, step
+        real, intent(in) :: time, lambda, box(3,3), pos(*), vel(*), force(*)
+
+        trr % stat = write_trr(trr % xd, natoms, step, time, lambda, box, pos, vel, force)
+    end subroutine write_trrfile
 
     subroutine close_xdr(trj)
 
         implicit none
         class(trjfile), intent(inout) :: trj
 
+        if (trj % mode == 'r') then
+          select type (trj)
+          type is (xtcfile)
+            deallocate(trj % pos)
+
+          type is (trrfile)
+            deallocate(trj % pos)
+            deallocate(trj % vel)
+            deallocate(trj % force)
+          end select
+        end if 
+
         trj % stat = xdrfile_close(trj % xd)
-
-        select type (trj)
-
-        type is (xtcfile)
-          deallocate(trj % pos)
-
-        type is (trrfile)
-          deallocate(trj % pos)
-          deallocate(trj % vel)
-          deallocate(trj % force)
-
-        end select
-
     end subroutine close_xdr
 
 end module xdr
