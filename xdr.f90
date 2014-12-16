@@ -194,9 +194,6 @@ contains
 
         end select
 
-        ! C is row-major, whereas Fortran is column major. Hence the following.
-        trj % box = transpose(box_trans)
-
     end subroutine read_xdr
 
     subroutine close_xdr(trj)
