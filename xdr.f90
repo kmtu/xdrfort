@@ -89,7 +89,8 @@ module xdr
       integer(C_INT) function read_xtc(xd,NATOMS,STEP,time,box,x,prec) bind(C, name='read_xtc')
         import
         type(xdrfile), intent(in) :: xd
-        integer(C_INT), intent(out) :: NATOMS, STEP
+        integer(C_INT), intent(in), value :: NATOMS
+        integer(C_INT), intent(out) :: STEP
         real(C_FLOAT), intent(out) :: time, prec, box(*), x(*)
       end function
 
@@ -103,7 +104,8 @@ module xdr
       integer(C_INT) function read_trr(xd,NATOMS,STEP,time,lambda,box,x,v,f) bind(C, name='read_trr')
         import
         type(xdrfile), intent(in) :: xd
-        integer(C_INT), intent(out) :: NATOMS, STEP
+        integer(C_INT), intent(in), value :: NATOMS
+        integer(C_INT), intent(out) :: STEP
         real(C_FLOAT), intent(out) :: time, lambda, box(*), x(*), v(*), f(*)
       end function
 
