@@ -15,7 +15,7 @@ module xdr
 
     type, abstract :: trjfile
       type(xdrfile), pointer :: xd
-      integer(C_INT) :: NATOMS, STEP, STAT
+      integer(C_INT) :: natoms, step, stat
       real(C_FLOAT) :: box(3,3), time
     contains
       procedure :: init => init_xdr
@@ -25,11 +25,11 @@ module xdr
 
 !   *** xtcfile type
 !   box     - triclinic pbc box of the configuration
-!   NATOMS  - number of atoms in the configuration.
-!   pos     - positions read in (3,NATOMS)
+!   natoms  - number of atoms in the configuration.
+!   pos     - positions read in (3,natoms)
 !   prec    - precision of the coordinates read in
-!   STEP    - step number of configuration.
-!   STAT    - status of operation. 0 = good
+!   step    - step number of configuration.
+!   stat    - status of operation. 0 = good
 !   time    - time of the configuration
 !   xd      - pointer from libxdrfile.
 
@@ -43,13 +43,13 @@ module xdr
 
 !   *** trrfile type
 !   box     - triclinic pbc box of the configuration
-!   NATOMS  - number of atoms in the configuration.
-!   pos     - positions read in (3,NATOMS)
-!   vel     - velocities read in (3,NATOMS)
-!   force   - forces read in (3,NATOMS)
+!   natoms  - number of atoms in the configuration.
+!   pos     - positions read in (3,natoms)
+!   vel     - velocities read in (3,natoms)
+!   force   - forces read in (3,natoms)
 !   lambda  - lambda value for free energy perturbation calculations
-!   STEP    - step number of configuration.
-!   STAT    - status of operation. 0 = good
+!   step    - step number of configuration.
+!   stat    - status of operation. 0 = good
 !   time    - time of the configuration
 !   xd      - pointer from libxdrfile.
 
@@ -80,32 +80,32 @@ module xdr
       end function
 
       ! xtc
-      integer(C_INT) function read_xtc_natoms(filename,NATOMS) bind(C, name='read_xtc_natoms')
+      integer(C_INT) function read_xtc_natoms(filename,natoms) bind(C, name='read_xtc_natoms')
         import
         character(kind=C_CHAR), intent(in) :: filename
-        integer(C_INT), intent(out) :: NATOMS
+        integer(C_INT), intent(out) :: natoms
       end function
 
-      integer(C_INT) function read_xtc(xd,NATOMS,STEP,time,box,x,prec) bind(C, name='read_xtc')
+      integer(C_INT) function read_xtc(xd,natoms,step,time,box,x,prec) bind(C, name='read_xtc')
         import
         type(xdrfile), intent(in) :: xd
-        integer(C_INT), intent(in), value :: NATOMS
-        integer(C_INT), intent(out) :: STEP
+        integer(C_INT), intent(in), value :: natoms
+        integer(C_INT), intent(out) :: step
         real(C_FLOAT), intent(out) :: time, prec, box(*), x(*)
       end function
 
       ! trr
-      integer(C_INT) function read_trr_natoms(filename,NATOMS) bind(C, name='read_trr_natoms')
+      integer(C_INT) function read_trr_natoms(filename,natoms) bind(C, name='read_trr_natoms')
         import
         character(kind=C_CHAR), intent(in) :: filename
-        integer(C_INT), intent(out) :: NATOMS
+        integer(C_INT), intent(out) :: natoms
       end function
 
-      integer(C_INT) function read_trr(xd,NATOMS,STEP,time,lambda,box,x,v,f) bind(C, name='read_trr')
+      integer(C_INT) function read_trr(xd,natoms,step,time,lambda,box,x,v,f) bind(C, name='read_trr')
         import
         type(xdrfile), intent(in) :: xd
-        integer(C_INT), intent(in), value :: NATOMS
-        integer(C_INT), intent(out) :: STEP
+        integer(C_INT), intent(in), value :: natoms
+        integer(C_INT), intent(out) :: step
         real(C_FLOAT), intent(out) :: time, lambda, box(*), x(*), v(*), f(*)
       end function
 
@@ -141,31 +141,31 @@ contains
 
         type is (xtcfile)
           ! Get number of atoms in system and allocate position array.
-          trj % STAT = read_xtc_natoms(filename,trj % NATOMS)
+          trj % stat = read_xtc_natoms(filename,trj % natoms)
 
-          if (trj % STAT /= 0) then
+          if (trj % stat /= 0) then
               write(0,*)
               write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an xtc file?"
               write(0,*)
               stop
           end if
 
-          allocate(trj % pos(3,trj % NATOMS))
+          allocate(trj % pos(3,trj % natoms))
 
         type is (trrfile)
           ! Get number of atoms in system and allocate position, velocity, force arrays.
-          trj % STAT = read_trr_natoms(filename,trj % NATOMS)
+          trj % stat = read_trr_natoms(filename,trj % natoms)
 
-          if (trj % STAT /= 0) then
+          if (trj % stat /= 0) then
               write(0,*)
               write(0,'(a)') " Error reading in "//trim(filename_in)//". Is it really an trr file?"
               write(0,*)
               stop
           end if
 
-          allocate(trj % pos(3,trj % NATOMS))
-          allocate(trj % vel(3,trj % NATOMS))
-          allocate(trj % force(3,trj % NATOMS))
+          allocate(trj % pos(3,trj % natoms))
+          allocate(trj % vel(3,trj % natoms))
+          allocate(trj % force(3,trj % natoms))
         end select
 
         ! Open the file for reading. Convert C pointer to Fortran pointer.
@@ -173,7 +173,7 @@ contains
         call c_f_pointer(xd_c,trj % xd)
 
         write(0,'(a)') " Opened "//trim(filename)//" for reading."
-        write(0,'(a,i0,a)') " ",trj % NATOMS, " atoms present in system."
+        write(0,'(a,i0,a)') " ",trj % natoms, " atoms present in system."
         write(0,*)
 
     end subroutine init_xdr
@@ -187,10 +187,10 @@ contains
         select type (trj)
 
         type is (xtcfile)
-          trj % STAT = read_xtc(trj % xd,trj % NATOMS,trj % STEP,trj % time,box_trans,trj % pos,trj % prec)
+          trj % stat = read_xtc(trj % xd,trj % natoms,trj % step,trj % time,box_trans,trj % pos,trj % prec)
 
         type is (trrfile)
-          trj % STAT = read_trr(trj % xd,trj % NATOMS,trj % STEP,trj % time,trj % lambda, box_trans,trj % pos,trj % vel,trj % force)
+          trj % stat = read_trr(trj % xd,trj % natoms,trj % step,trj % time,trj % lambda, box_trans,trj % pos,trj % vel,trj % force)
 
         end select
 
@@ -204,7 +204,7 @@ contains
         implicit none
         class(trjfile), intent(inout) :: trj
 
-        trj % STAT = xdrfile_close(trj % xd)
+        trj % stat = xdrfile_close(trj % xd)
 
         select type (trj)
 
