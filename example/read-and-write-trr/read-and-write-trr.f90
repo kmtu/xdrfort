@@ -2,6 +2,9 @@
 !  2014 (c) James W. Barnett <jbarnet4@tulane.edu>
 !  https://github.com/wesbarnett/
 !
+!  Modified by Kai-Min Tu (2014)
+!  Based on Barnett's work, the interface for TRR file is incorporated
+!  https://github.com/kmtu/
 
 program example
 
