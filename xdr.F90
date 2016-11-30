@@ -8,15 +8,14 @@
 
 module xdr
 
+    use, intrinsic :: iso_c_binding, only: C_PTR, C_CHAR, C_FLOAT, C_DOUBLE, C_INT
 #ifdef XDR_DOUBLE
 #define F_REAL 8
     ! TODO: use iso_fortran_env, only: REAL64
-    use, intrinsic :: iso_c_binding, only: C_PTR, C_CHAR, C_DOUBLE, C_INT
 #define C_REAL C_DOUBLE
 #else
 #define F_REAL 4
     ! TODO: use iso_fortran_env, only: REAL_KINDS
-    use, intrinsic :: iso_c_binding, only: C_PTR, C_CHAR, C_FLOAT, C_INT
 #define C_REAL C_FLOAT
 #endif
 
@@ -26,7 +25,6 @@ module xdr
     type, abstract :: trjfile
       type(xdrfile), pointer :: xd
       integer(C_INT) :: natoms, step, stat
-      real(C_REAL) :: box(3,3), time
       character(len=1) :: mode
     contains
       procedure :: init => init_xdr
@@ -48,8 +46,9 @@ module xdr
 !   calculations. After the loops call close.
 
     type, extends(trjfile), public :: xtcfile
-      real(C_REAL), allocatable :: pos(:,:)
-      real(C_REAL) :: prec
+      real(C_FLOAT) :: box(3,3), time
+      real(C_FLOAT), allocatable :: pos(:,:)
+      real(C_FLOAT) :: prec
     contains
       procedure :: write => write_xtcfile
     end type
@@ -67,6 +66,7 @@ module xdr
 !   xd      - pointer from libxdrfile.
 
     type, extends(trjfile), public :: trrfile
+      real(C_REAL) :: box(3,3), time
       real(C_REAL), allocatable :: pos(:,:), vel(:,:), force(:,:)
       real(C_REAL) :: lambda
     contains
@@ -104,17 +104,17 @@ module xdr
       integer(C_INT) function read_xtc(xd,natoms,step,time,box,x,prec) bind(C)
         import
         type(xdrfile), intent(in) :: xd
-        integer(C_INT), intent(in), value :: natoms
-        integer(C_INT), intent(out) :: step
-        real(C_REAL), intent(out) :: time, prec, box(*), x(*)
+        integer(C_FLOAT), intent(in), value :: natoms
+        integer(C_FLOAT), intent(out) :: step
+        real(C_FLOAT), intent(out) :: time, prec, box(*), x(*)
       end function
 
       integer(C_INT) function write_xtc(xd,natoms,step,time,box,x,prec) bind(C)
         import
         type(xdrfile), intent(in) :: xd
         integer(C_INT), intent(in), value :: natoms, step
-        real(C_REAL), intent(in), value :: time, prec
-        real(C_REAL), intent(in) :: box(*), x(*)
+        real(C_FLOAT), intent(in), value :: time, prec
+        real(C_FLOAT), intent(in) :: box(*), x(*)
       end function
 
       ! trr
@@ -248,7 +248,7 @@ contains
         implicit none
         class(xtcfile), intent(inout) :: xtc
         integer, intent(in) :: natoms, step
-        real(F_REAL), intent(in) :: time, box(3,3), pos(:, :), prec
+        real, intent(in) :: time, box(3,3), pos(:, :), prec
 
         xtc % stat = write_xtc(xtc % xd, natoms, step, time, box, pos, prec)
     end subroutine write_xtcfile
