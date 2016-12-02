@@ -10,11 +10,11 @@ module xdr
 
     use, intrinsic :: iso_c_binding, only: C_PTR, C_CHAR, C_FLOAT, C_DOUBLE, C_INT
 #ifdef XDR_DOUBLE
-#define F_REAL 8
+#define F_REAL KIND(0.0D0)
     ! TODO: use iso_fortran_env, only: REAL64
 #define C_REAL C_DOUBLE
 #else
-#define F_REAL 4
+#define F_REAL KIND(0.0)
     ! TODO: use iso_fortran_env, only: REAL_KINDS
 #define C_REAL C_FLOAT
 #endif
