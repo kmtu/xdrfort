@@ -99,8 +99,8 @@ module xdr
         integer(C_INT) function read_xtc(xd, natoms, step, time, box, x, prec) bind(C)
             import
             type(xdrfile), intent(in) :: xd
-            integer(C_FLOAT), intent(in), value :: natoms
-            integer(C_FLOAT), intent(out) :: step
+            integer(C_INT), intent(in), value :: natoms
+            integer(C_INT), intent(out) :: step
             real(C_FLOAT), intent(out) :: time, prec, box(*), x(*)
         end function
 
